@@ -22,7 +22,7 @@ pipeline {
                     ./venv/bin/pip install --upgrade pip
                     ./venv/bin/pip install -r app/requirements.txt
                     export PYTHONPATH=$PWD
-                    ./venv/bin/pytest -v --cache-clear app/test_app.py
+                    ./venv/bin/python -m pytest -v --cache-clear app/test_app.py
                 '''
             }
         }
