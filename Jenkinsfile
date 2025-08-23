@@ -2,13 +2,14 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "docker.io/<nikitha1916>/jenkins-flask"
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
+        IMAGE_NAME = 'nikitham1916-pixel/jenkins-flask'
     }
 
     stages {
-        stage('Clone Repo') {
+        stage('Checkout SCM') {
             steps {
-                git branch: 'main', url: 'https://github.com/nikitham1916-pixel/jenkins-flask-pipeline.git'
+                checkout scm
             }
         }
 
@@ -16,9 +17,9 @@ pipeline {
             steps {
                 sh '''
                     python3 -m venv venv
-                    . venv/bin/activate
-                    pip install -r app/requirements.txt
-                    pytest app/test_app.py
+                    ./venv/bin/pip install --upgrade pip
+                    ./venv/bin/pip install -r app/requirements.txt
+                    ./venv/bin/pytest app/test_app.py
                 '''
             }
         }
@@ -26,19 +27,16 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}:latest", ".")
+                    docker.build("${IMAGE_NAME}:latest")
                 }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    script {
-                        sh '''
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push ${DOCKER_IMAGE}:latest
-                        '''
+                script {
+                    docker.withRegistry('', 'dockerhub-creds') {
+                        docker.image("${IMAGE_NAME}:latest").push()
                     }
                 }
             }
@@ -51,4 +49,6 @@ pipeline {
         }
     }
 }
+
+
 
