@@ -2,24 +2,25 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
-        IMAGE_NAME = 'nikitha1916/jenkins-flask'
+        DOCKER_HUB_CREDENTIALS = credentials('docker.hub-creds') // Replace with your actual Jenkins credential ID
+        IMAGE_NAME = "nikitha1916/jenkins-flask" // Replace with your Docker image name
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Install Dependencies & Run Tests') {
+        stage('Setup & Test') {
             steps {
                 sh '''
                     python3 -m venv venv
-                    ./venv/bin/pip install --upgrade pip
-                    ./venv/bin/pip install -r app/requirements.txt
-                    ./venv/bin/pytest app/test_app.py
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r app/requirements.txt
+                    pytest app/test_app.py
                 '''
             }
         }
@@ -27,7 +28,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${IMAGE_NAME}:latest")
+                    sh "docker build -t ${IMAGE_NAME}:latest ."
                 }
             }
         }
@@ -35,9 +36,10 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', 'dockerhub-creds') {
-                        docker.image("${IMAGE_NAME}:latest").push()
-                    }
+                    sh """
+                    echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin
+                    docker push ${IMAGE_NAME}:latest
+                    """
                 }
             }
         }
@@ -49,4 +51,3 @@ pipeline {
         }
     }
 }
-
