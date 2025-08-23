@@ -4,7 +4,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
-        IMAGE_NAME = 'nikitham1916-pixel/jenkins-flask'
+        IMAGE_NAME = 'nikitha1916/jenkins-flask'
     }
 
     stages {
