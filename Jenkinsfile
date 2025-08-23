@@ -19,6 +19,7 @@ pipeline {
                     python3 -m venv venv
                     ./venv/bin/pip install --upgrade pip
                     ./venv/bin/pip install -r app/requirements.txt
+                    ./venv/bin/pip install pytest
                     ./venv/bin/pytest app/test_app.py
                 '''
             }
