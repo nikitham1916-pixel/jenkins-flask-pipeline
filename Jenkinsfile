@@ -1,61 +1,35 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_HUB_CREDENTIALS = credentials('docker.hub-creds')
-    }
-
     stages {
-        stage('Checkout SCM') {
+        stage('Clone Repo') {
             steps {
-                checkout([$class: 'GitSCM', 
-                          branches: [[name: '*/main']], 
-                          userRemoteConfigs: [[url: 'https://github.com/nikitham1916-pixel/jenkins-flask-pipeline.git',
-                                               credentialsId: 'docker.hub-creds']]])
+                git 'https://github.com/nikitham1916-pixel/jenkins-flask-pipeline.git'
             }
         }
 
-        stage('Install & Test') {
+        stage('Install Dependencies') {
             steps {
-                sh '''
-                    python3 -m venv venv
-                    ./venv/bin/pip install --upgrade pip
-                    ./venv/bin/pip install -r app/requirements.txt
-                    export PYTHONPATH=$PWD
-                    ./venv/bin/python -m pytest -v --cache-clear app/test_app.py
-                '''
+                sh 'pip install -r app/requirements.txt'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'python app/test_app.py'
             }
         }
 
         stage('Build Docker Image') {
-            when {
-                expression { currentBuild.currentResult == 'SUCCESS' }
-            }
             steps {
-                sh '''
-                    docker build -t nikitham1916/jenkins-flask:latest .
-                '''
+                sh 'docker build -t flask-jenkins-pipeline .'
             }
         }
 
-        stage('Push Docker Image') {
-            when {
-                expression { currentBuild.currentResult == 'SUCCESS' }
-            }
+        stage('Run Docker Container') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker.hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push nikitha1916/jenkins-flask:latest
-                    '''
-                }
+                sh 'docker run -d -p 5000:5000 flask-jenkins-pipeline'
             }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
         }
     }
 }
